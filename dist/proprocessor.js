@@ -10,13 +10,17 @@ const preprocessEnxFile = (filepath) => {
     const srcDir = path_1.default.dirname(filepath);
     const enxScript = fs_1.default.readFileSync(filepath).toString();
     const lines = enxScript.split('\n');
+    const includedFiles = new Set();
     let output = '';
     for (const line of lines) {
         const trimed = line.trim();
         if (trimed.startsWith('#include ')) {
             const includeFilename = trimed.substr(9);
             const includePath = path_1.default.join(srcDir, includeFilename);
-            output += exports.preprocessEnxFile(includePath) + '\n';
+            if (!includedFiles.has(includePath)) {
+                output += exports.preprocessEnxFile(includePath) + '\n';
+                includedFiles.add(includePath);
+            }
         }
         else {
             output += line + '\n';

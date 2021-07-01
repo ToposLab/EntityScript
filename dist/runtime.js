@@ -1,7 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.EntityScriptRuntime = exports.forwardSearch = exports.backwardSearch = void 0;
-const lodash_1 = require("lodash");
+exports.EntityScriptRuntime = exports.neighborSearch = exports.forwardSearch = exports.backwardSearch = void 0;
 const compiler_1 = require("./compiler");
 const proprocessor_1 = require("./proprocessor");
 const backwardSearch = (node, depth) => {
@@ -30,74 +29,93 @@ const forwardSearch = (node, depth) => {
     return result;
 };
 exports.forwardSearch = forwardSearch;
+const neighborSearch = (node) => {
+    const result = new Set(node.names);
+    for (const parent of node.parents) {
+        const nodes = parent.children;
+        for (const node of nodes) {
+            for (const name of node.names) {
+                result.add(name);
+            }
+        }
+    }
+    return result;
+};
+exports.neighborSearch = neighborSearch;
 class EntityScriptRuntime {
     constructor() {
         this.compiledMap = {};
+        this.keywordMatchers = [];
     }
     load(enxFilePath) {
         const enxScript = proprocessor_1.preprocessEnxFile(enxFilePath);
         const compiledMap = compiler_1.compileEnxScript(enxScript);
         this.compiledMap = compiledMap;
+        const keywords = Object.keys(this.compiledMap);
+        keywords.sort((a, b) => b.length - a.length);
+        for (const keyword of keywords) {
+            this.keywordMatchers.push({
+                keyword,
+                regExp: new RegExp(`${keyword}`, 'i'),
+            });
+        }
     }
     match(text, depth = 2) {
-        const keywords = Object.keys(this.compiledMap);
         const visitedNodes = new Set();
         const results = [];
-        for (const keyword of keywords) {
-            if (new RegExp(`${keyword}`, 'i').test(text)) {
-                const node = this.compiledMap[keyword];
+        for (const matcher of this.keywordMatchers) {
+            const keywordReplaced = text.replace(matcher.regExp, '');
+            if (keywordReplaced.length < text.length) {
+                text = keywordReplaced;
+                const node = this.compiledMap[matcher.keyword];
                 const result = new Set();
                 if (!visitedNodes.has(node)) {
-                    visitedNodes.add(node);
                     const backward = exports.backwardSearch(node, depth);
-                    const forward = exports.forwardSearch(node, depth);
                     for (const item of backward) {
                         result.add(item);
                     }
-                    for (const item of forward) {
-                        result.add(item);
-                    }
+                    visitedNodes.add(node);
                 }
                 results.push(Array.from(result));
             }
         }
-        return lodash_1.intersection(...results);
+        return results;
     }
-    search(text, depth = 2) {
-        const keywords = Object.keys(this.compiledMap);
+    recommend(text, depth = 2) {
         const visitedNodes = new Set();
         const result = new Set();
-        for (const keyword of keywords) {
-            if (new RegExp(`${keyword}`, 'i').test(text)) {
-                const node = this.compiledMap[keyword];
+        for (const matcher of this.keywordMatchers) {
+            const keywordReplaced = text.replace(matcher.regExp, '');
+            if (keywordReplaced.length < text.length) {
+                text = keywordReplaced;
+                const node = this.compiledMap[matcher.keyword];
                 if (!visitedNodes.has(node)) {
-                    visitedNodes.add(node);
                     const backward = exports.backwardSearch(node, depth);
                     const forward = exports.forwardSearch(node, depth);
-                    for (const item of backward) {
+                    for (const item of backward)
                         result.add(item);
-                    }
-                    for (const item of forward) {
+                    for (const item of forward)
                         result.add(item);
-                    }
+                    visitedNodes.add(node);
                 }
             }
         }
         return Array.from(result);
     }
     classify(text, depth = 5) {
-        const keywords = Object.keys(this.compiledMap);
         const visitedNodes = new Set();
         const result = new Set();
-        for (const keyword of keywords) {
-            if (new RegExp(`${keyword}`, 'i').test(text)) {
-                const node = this.compiledMap[keyword];
+        for (const matcher of this.keywordMatchers) {
+            const keywordReplaced = text.replace(matcher.regExp, '');
+            if (keywordReplaced.length < text.length) {
+                text = keywordReplaced;
+                const node = this.compiledMap[matcher.keyword];
                 if (!visitedNodes.has(node)) {
-                    visitedNodes.add(node);
                     const items = exports.backwardSearch(node, depth);
                     for (const item of items) {
                         result.add(item);
                     }
+                    visitedNodes.add(node);
                 }
             }
         }

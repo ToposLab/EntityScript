@@ -5,6 +5,7 @@ export const preprocessEnxFile = (filepath: string) => {
   const srcDir = path.dirname(filepath)
   const enxScript = fs.readFileSync(filepath).toString()
   const lines = enxScript.split('\n')
+  const includedFiles = new Set<string>()
 
   let output = ''
 
@@ -15,7 +16,10 @@ export const preprocessEnxFile = (filepath: string) => {
       const includeFilename = trimed.substr(9)
       const includePath = path.join(srcDir, includeFilename)
 
-      output += preprocessEnxFile(includePath) + '\n'
+      if (!includedFiles.has(includePath)) {
+        output += preprocessEnxFile(includePath) + '\n'
+        includedFiles.add(includePath)
+      }
     } else {
       output += line + '\n'
     }
