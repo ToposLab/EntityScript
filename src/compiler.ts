@@ -45,7 +45,7 @@ export const compileEnxScript = (enxScript: string) => {
       } else if (token.type === 'Punctuator') {
         return list
       } else {
-        throw new SyntaxError('Invalid string list element')
+        throw new SyntaxError(`Invalid string list element '${token.value}'`)
       }
     }
 
@@ -82,7 +82,7 @@ export const compileEnxScript = (enxScript: string) => {
       } else if (token.type === 'Punctuator') {
         return list
       } else {
-        throw new SyntaxError('Invalid node list element')
+        throw new SyntaxError(`Invalid node list element '${token.value}'`)
       }
     }
 
@@ -120,11 +120,13 @@ export const compileEnxScript = (enxScript: string) => {
         } else if (operator === 'likes') {
           const nodes = parseNodeList()
           current.children.push(...nodes)
+        } else {
+          throw new SyntaxError(`Invalid opeartion '${operator}'`)
         }
 
         return
       } else {
-        throw new SyntaxError('Invalid opeartion')
+        throw new SyntaxError(`Invalid opeartion '${token.value}'`)
       }
     }
 
@@ -154,7 +156,7 @@ export const compileEnxScript = (enxScript: string) => {
 
         return parseOperator(node, token.value)
       } else {
-        throw new SyntaxError('An entity should be followed by an operator')
+        throw new SyntaxError(`'${identifier}' is not followed by an operator`)
       }
     }
   }
@@ -174,7 +176,7 @@ export const compileEnxScript = (enxScript: string) => {
     if (token.type === 'IdentifierName') {
       parseIdentifier(token.value)
     } else {
-      throw new SyntaxError(`Invalid token ${token.value}`)
+      throw new SyntaxError(`Invalid token '${token.value}'`)
     }
   }
 
