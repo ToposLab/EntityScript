@@ -60,66 +60,85 @@ class EntityScriptRuntime {
             });
         }
     }
-    match(text, depth = 2) {
+    match(source, depth = 2) {
         const visitedNodes = new Set();
         const results = [];
-        for (const matcher of this.keywordMatchers) {
-            const keywordReplaced = text.replace(matcher.regExp, '');
-            if (keywordReplaced.length < text.length) {
-                text = keywordReplaced;
-                const node = this.compiledMap[matcher.keyword];
-                const result = new Set();
-                if (!visitedNodes.has(node)) {
-                    const backward = exports.backwardSearch(node, depth);
-                    for (const item of backward) {
-                        result.add(item);
-                    }
-                    visitedNodes.add(node);
+        const nodes = Array.isArray(source)
+            ? this.matchNodes(source)
+            : this.extractNodes(source);
+        for (const node of nodes) {
+            const result = new Set();
+            if (!visitedNodes.has(node)) {
+                const backward = exports.backwardSearch(node, depth);
+                for (const item of backward) {
+                    result.add(item);
                 }
-                results.push(Array.from(result));
+                visitedNodes.add(node);
             }
+            results.push(Array.from(result));
         }
         return results;
     }
-    recommend(text, depth = 2) {
+    recommend(source, depth = 2) {
         const visitedNodes = new Set();
         const result = new Set();
-        for (const matcher of this.keywordMatchers) {
-            const keywordReplaced = text.replace(matcher.regExp, '');
-            if (keywordReplaced.length < text.length) {
-                text = keywordReplaced;
-                const node = this.compiledMap[matcher.keyword];
-                if (!visitedNodes.has(node)) {
-                    const backward = exports.backwardSearch(node, depth);
-                    const forward = exports.forwardSearch(node, depth);
-                    for (const item of backward)
-                        result.add(item);
-                    for (const item of forward)
-                        result.add(item);
-                    visitedNodes.add(node);
-                }
+        const nodes = Array.isArray(source)
+            ? this.matchNodes(source)
+            : this.extractNodes(source);
+        for (const node of nodes) {
+            if (!visitedNodes.has(node)) {
+                const backward = exports.backwardSearch(node, depth);
+                const forward = exports.forwardSearch(node, depth);
+                for (const item of backward)
+                    result.add(item);
+                for (const item of forward)
+                    result.add(item);
+                visitedNodes.add(node);
             }
         }
         return Array.from(result);
     }
-    classify(text, depth = 5) {
+    classify(source, depth = 5) {
         const visitedNodes = new Set();
         const result = new Set();
+        const nodes = Array.isArray(source)
+            ? this.matchNodes(source)
+            : this.extractNodes(source);
+        for (const node of nodes) {
+            if (!visitedNodes.has(node)) {
+                const items = exports.backwardSearch(node, depth);
+                for (const item of items) {
+                    result.add(item);
+                }
+                visitedNodes.add(node);
+            }
+        }
+        return Array.from(result);
+    }
+    matchNodes(keywords) {
+        const keywordSet = new Set(keywords);
+        const result = [];
+        for (const matcher of this.keywordMatchers) {
+            for (const keyword of keywordSet) {
+                if (matcher.regExp.test(keyword)) {
+                    keywordSet.delete(keyword);
+                    result.push(this.compiledMap[matcher.keyword]);
+                    break;
+                }
+            }
+        }
+        return result;
+    }
+    extractNodes(text) {
+        const result = [];
         for (const matcher of this.keywordMatchers) {
             const keywordReplaced = text.replace(matcher.regExp, '');
             if (keywordReplaced.length < text.length) {
                 text = keywordReplaced;
-                const node = this.compiledMap[matcher.keyword];
-                if (!visitedNodes.has(node)) {
-                    const items = exports.backwardSearch(node, depth);
-                    for (const item of items) {
-                        result.add(item);
-                    }
-                    visitedNodes.add(node);
-                }
+                result.push(this.compiledMap[matcher.keyword]);
             }
         }
-        return Array.from(result);
+        return result;
     }
 }
 exports.EntityScriptRuntime = EntityScriptRuntime;

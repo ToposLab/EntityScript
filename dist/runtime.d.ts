@@ -11,7 +11,9 @@ export declare class EntityScriptRuntime {
     keywordMatchers: KeywordMatcher[];
     constructor();
     load(enxFilePath: string): void;
-    match(text: string, depth?: number): string[][];
-    recommend(text: string, depth?: number): string[];
-    classify(text: string, depth?: number): string[];
+    match(source: string | string[], depth?: number): string[][];
+    recommend(source: string | string[], depth?: number): string[];
+    classify(source: string | string[], depth?: number): string[];
+    private matchNodes;
+    private extractNodes;
 }

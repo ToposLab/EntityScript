@@ -80,87 +80,105 @@ export class EntityScriptRuntime {
     }
   }
 
-  match(text: string, depth = 2) {
+  match(source: string | string[], depth = 2) {
     const visitedNodes = new Set<Node>()
     const results: string[][] = []
+    const nodes = Array.isArray(source)
+      ? this.matchNodes(source)
+      : this.extractNodes(source)
 
-    for (const matcher of this.keywordMatchers) {
-      const keywordReplaced = text.replace(matcher.regExp, '')
+    for (const node of nodes) {
+      const result = new Set<string>()
 
-      if (keywordReplaced.length < text.length) {
-        text = keywordReplaced
+      if (!visitedNodes.has(node)) {
+        const backward = backwardSearch(node, depth)
 
-        const node = this.compiledMap[matcher.keyword]
-        const result = new Set<string>()
-
-        if (!visitedNodes.has(node)) {
-          const backward = backwardSearch(node, depth)
-
-          for (const item of backward) {
-            result.add(item)
-          }
-
-          visitedNodes.add(node)
+        for (const item of backward) {
+          result.add(item)
         }
 
-        results.push(Array.from(result))
+        visitedNodes.add(node)
       }
+
+      results.push(Array.from(result))
     }
 
     return results
   }
 
-  recommend(text: string, depth = 2) {
+  recommend(source: string | string[], depth = 2) {
     const visitedNodes = new Set<Node>()
     const result = new Set<string>()
+    const nodes = Array.isArray(source)
+      ? this.matchNodes(source)
+      : this.extractNodes(source)
 
-    for (const matcher of this.keywordMatchers) {
-      const keywordReplaced = text.replace(matcher.regExp, '')
+    for (const node of nodes) {
+      if (!visitedNodes.has(node)) {
+        const backward = backwardSearch(node, depth)
+        const forward = forwardSearch(node, depth)
 
-      if (keywordReplaced.length < text.length) {
-        text = keywordReplaced
+        for (const item of backward) result.add(item)
+        for (const item of forward) result.add(item)
 
-        const node = this.compiledMap[matcher.keyword]
-
-        if (!visitedNodes.has(node)) {
-          const backward = backwardSearch(node, depth)
-          const forward = forwardSearch(node, depth)
-
-          for (const item of backward) result.add(item)
-          for (const item of forward) result.add(item)
-
-          visitedNodes.add(node)
-        }
+        visitedNodes.add(node)
       }
     }
 
     return Array.from(result)
   }
 
-  classify(text: string, depth = 5) {
+  classify(source: string | string[], depth = 5) {
     const visitedNodes = new Set<Node>()
     const result = new Set<string>()
+    const nodes = Array.isArray(source)
+      ? this.matchNodes(source)
+      : this.extractNodes(source)
+
+    for (const node of nodes) {
+      if (!visitedNodes.has(node)) {
+        const items = backwardSearch(node, depth)
+
+        for (const item of items) {
+          result.add(item)
+        }
+
+        visitedNodes.add(node)
+      }
+    }
+
+    return Array.from(result)
+  }
+
+  private matchNodes(keywords: string[]) {
+    const keywordSet = new Set<string>(keywords)
+    const result: Node[] = []
+
+    for (const matcher of this.keywordMatchers) {
+      for (const keyword of keywordSet) {
+        if (matcher.regExp.test(keyword)) {
+          keywordSet.delete(keyword)
+          result.push(this.compiledMap[matcher.keyword])
+          break
+        }
+      }
+    }
+
+    return result
+  }
+
+  private extractNodes(text: string) {
+    const result: Node[] = []
 
     for (const matcher of this.keywordMatchers) {
       const keywordReplaced = text.replace(matcher.regExp, '')
 
       if (keywordReplaced.length < text.length) {
         text = keywordReplaced
-
-        const node = this.compiledMap[matcher.keyword]
-
-        if (!visitedNodes.has(node)) {
-          const items = backwardSearch(node, depth)
-
-          for (const item of items) {
-            result.add(item)
-          }
-
-          visitedNodes.add(node)
-        }
+        result.push(this.compiledMap[matcher.keyword])
       }
     }
 
-    return Array.from(result)
+    return result
   }
 }
