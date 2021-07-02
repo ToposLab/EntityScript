@@ -75,7 +75,7 @@ export class EntityScriptRuntime {
     for (const keyword of keywords) {
       this.keywordMatchers.push({
         keyword,
-        regExp: new RegExp(`${keyword}`, 'i'),
+        regExp: new RegExp(`${keyword}`, 'ig'),
       })
     }
   }
